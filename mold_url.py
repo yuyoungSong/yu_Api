@@ -79,6 +79,14 @@ from werkzeug.utils import secure_filename
 import base64
 from flask_cors import CORS
 
+
+from selenium import webdriver
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.common.keys import Keys
+from selenium.webdriver import Chrome, ChromeService
+from selenium.webdriver.common.by import By
 # app = Flask(__name__)
 
 
@@ -122,7 +130,6 @@ def detect():
             return mold_names[int(cls)].strip()
 
         # 업로드된 파일을 임시 위치에 저장합니다.
-        # fileimg = secure_filename(file_img)
         
         file_path = os.path.join('temp_uploads', secure_filename(file_img.filename))
         file_img.save(file_path)
@@ -141,13 +148,166 @@ def detect():
         # 확률에 따라 결과 정렬
         result_list_mapped.sort(key=lambda x: x[1], reverse=True)
 
-        # 응답 데이터 준비
-        response_data = [{'version': version, 'class': cls, 'confidence': round(conf, 4)} for cls, conf in result_list_mapped]
+        # /////////////////////////////////////////////
+        # 현재 작업 디렉토리 확인
+        current_directory = os.getcwd()
+
+        # 웹 드라이버 생성 (executable_path 대신에 options를 사용)
+        chrome_options = webdriver.ChromeOptions()
+        chrome_options.add_argument('--no-sandbox')  # 특정 환경에서 필요할 수 있습니다
+        # chrome_options.add_argument('--headless')  # 실행 중에 브라우저 창을 표시하지 않음
+
+        # chromedriver 실행 파일의 경로 설정
+        # chrome_options.binary_location = os.path.join(current_directory)
+
+        # driver = webdriver.Chrome(options=chrome_options)
+
+        # # 웹 드라이버 파일이 현재 작업 디렉토리에 위치한다고 가정하고 경로 설정
+        # driver_path = os.path.join(current_directory, 'chromedriver')
+
+        # # 웹 드라이버 생성
+        # driver = webdriver.Chrome(executable_path=driver_path)
+
+        # 크롤링을 위한 루프
+        result_texts = []
+
+        for i, (cls, conf) in enumerate(result_list_mapped):
+            print(f"Processing item {i + 1}: {cls}")
+
+            title = cls
+            if title == 'penicillum crustosum':
+    #         print('title초기',title)
+              title = 'penicillium crustosum'
+    #         print('title변경',title)
+            # 크롤링할 페이지 URL
+            url = 'https://en.wikipedia.org/wiki/' + title
+
+            driver = Chrome(service=ChromeService("chromedriver.exe"))
+
+            # 웹 페이지 열기
+            driver.get(url)
+
+            result_text = ""
+
+            try:
+                # table 태그의 class가 "infobox"인 태그 선택
+                infobox_table = WebDriverWait(driver, 10).until(
+                    EC.presence_of_element_located((By.XPATH, '//table[contains(@class, "infobox")]'))
+                )
+
+                # infobox_table 태그와 해당 태그 사이에 있는 모든 p 태그 선택
+                p_tags = infobox_table.find_elements(By.XPATH, './following-sibling::p[following-sibling::h2]')
+
+                # 각 p 태그의 텍스트 내용을 변수에 추가
+                for p_tag in p_tags:
+                    result_text += p_tag.text + "\n"
+
+                # Append the result_text to the list
+                result_texts.append(result_text)
+
+            finally:
+                # 브라우저 닫기
+                driver.quit()
+
+        # /////////////////////////////////////////////
+
+        # # 응답 데이터 준비
+        # response_data = [
+        #     {
+        #         'version': version,
+        #         'class': cls,
+        #         'confidence': round(conf, 4),
+        #         'result_text': result_text
+        #     } for (cls, conf, result_text) in zip(result_list_mapped, result_texts)
+        # ]
+        response_data = []
+        for (cls, conf), result_text in zip(result_list_mapped, result_texts):
+            item_data = {'version': version, 'class': cls, 'confidence': round(conf, 4), 'result_text': result_text}
+            response_data.append(item_data)
 
         # 처리가 끝난 후 임시 파일 삭제
         os.remove(file_path)
 
         return jsonify(response_data)
+
+    #     # YOLO 감지 수행
+    #     yolo = YOLO(model_file)
+    #     results = yolo(file_path)
+
+    #     # 결과 추출
+    #     detection_cls = results[0].boxes.cls.tolist()
+    #     detection_conf = results[0].boxes.conf.tolist()
+    #      # 클래스 번호를 이름으로 매핑
+    #     result_list_mapped = [(map_cls_to_mold_name(detection_cls[i]), detection_conf[i]) for i in range(len(detection_cls))]
+
+    #     # 확률에 따라 결과 정렬
+    #     result_list_mapped.sort(key=lambda x: x[1], reverse=True)
+
+    #     # /////////////////////////////////////////////
+    #   # 현재 작업 디렉토리 확인
+    #     current_directory = os.getcwd()
+
+    #     # 웹 드라이버 생성 (executable_path 대신에 options를 사용)
+    #     chrome_options = webdriver.ChromeOptions()
+    #     chrome_options.add_argument('--no-sandbox')  # 특정 환경에서 필요할 수 있습니다
+    #     # chrome_options.add_argument('--headless')  # 실행 중에 브라우저 창을 표시하지 않음
+
+    #     # chromedriver 실행 파일의 경로 설정
+    #     # chrome_options.binary_location = os.path.join(current_directory)
+
+    #     # driver = webdriver.Chrome(options=chrome_options)
+
+    #     # # 웹 드라이버 파일이 현재 작업 디렉토리에 위치한다고 가정하고 경로 설정
+    #     # driver_path = os.path.join(current_directory, 'chromedriver')
+
+    #     # # 웹 드라이버 생성
+    #     # driver = webdriver.Chrome(executable_path=driver_path)
+        
+    #     title = result_list_mapped[0][0]
+    #     # 크롤링할 페이지 URL
+    #     if title == 'penicillum crustosum':
+    #         print('title초기',title)
+    #         title = 'penicillium crustosum'
+    #         print('title변경',title)
+        
+    #     url = 'https://en.wikipedia.org/wiki/'+title
+    #     driver = Chrome(service = ChromeService("chromedriver.exe"))
+
+    #     # 웹 페이지 열기
+    #     driver.get(url)
+
+    #     result_text = ""
+
+    #     try:
+    #         # table 태그의 class가 "infobox"인 태그 선택
+    #         infobox_table = WebDriverWait(driver, 10).until(
+    #             EC.presence_of_element_located((By.XPATH, '//table[contains(@class, "infobox")]'))
+    #         )
+
+    #         # infobox_table 태그와 해당 태그 사이에 있는 모든 p 태그 선택
+    #         p_tags = infobox_table.find_elements(By.XPATH, './following-sibling::p[following-sibling::h2]')
+
+    #         # 각 p 태그의 텍스트 내용을 변수에 추가
+    #         for p_tag in p_tags:
+    #             result_text += p_tag.text + "\n"
+
+    #     finally:
+    #         # 브라우저 닫기
+    #         driver.quit()
+
+    #     # 결과 출력
+    #     print(result_text)
+    #     # /////////////////////////////////////////////
+
+       
+
+    #     # 응답 데이터 준비
+    #     response_data = [{'version': version, 'class': cls, 'confidence': round(conf, 4), 'result_text':result_text} for cls, conf in result_list_mapped]
+
+    #     # 처리가 끝난 후 임시 파일 삭제
+    #     os.remove(file_path)
+
+    #     return jsonify(response_data)
 
     except Exception as e:
         # 디버깅을 위해 예외를 로그에 기록합니다.
