@@ -67,28 +67,8 @@
 
 
 #     # http://3.34.185.44:5000/detect
-from flask import Flask, request, jsonify
-from ultralytics import YOLO
-import os
-import shutil
-from werkzeug.utils import secure_filename
-import base64
 
-app = Flask(__name__)
 
-# YOLO 모델 초기화
-yolo = YOLO('mold_best.pt')
-
-# # 결과 폴더 경로
-# result_crops_path = 'runs/detect/predict/crops'
-# result_labels_path = 'runs/detect/predict/labels'
-
-# # 결과 폴더를 비웁니다.
-# if os.path.exists(result_crops_path):
-#     shutil.rmtree(result_crops_path)
-
-# if os.path.exists(result_labels_path):
-#     shutil.rmtree(result_labels_path)
 
 # 파일에서 이름을 읽어옵니다.
 from flask import Flask, request, jsonify
