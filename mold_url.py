@@ -95,12 +95,14 @@ def detect():
         if 'file' not in request.files:
             return jsonify({'error': 'No file part'}), 400
 
-        file = request.files['file']
+        file_img = request.files['file']
+        # filename = secure_filename(request.files['file'].name)
         version = request.form.get('version')  # 요청에서 'version' 값을 읽어옵니다.
-
+        # print(f"Received file: {file.name}")
+        # print(f"Received version: {version}")
         # 파일이 비어있는지 확인합니다.
-        if file.filename == '':
-            return jsonify({'error': 'No selected file'}), 400
+        # if file_img.name == '':
+        #     return jsonify({'error': 'No selected file'}), 400
 
         # 버전에 따라 적절한 모델과 파일 이름을 선택합니다.
         if version == 'mold':
@@ -120,9 +122,10 @@ def detect():
             return mold_names[int(cls)].strip()
 
         # 업로드된 파일을 임시 위치에 저장합니다.
-        filename = secure_filename(file.filename)
-        file_path = os.path.join('temp_uploads', filename)
-        file.save(file_path)
+        # fileimg = secure_filename(file_img)
+        
+        file_path = os.path.join('temp_uploads', secure_filename(file_img.filename))
+        file_img.save(file_path)
 
         # YOLO 감지 수행
         yolo = YOLO(model_file)
