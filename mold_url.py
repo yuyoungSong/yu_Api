@@ -77,7 +77,10 @@ import os
 import shutil
 from werkzeug.utils import secure_filename
 import base64
+from flask_cors import CORS
 
+app = Flask(__name__)
+CORS(app)  # 모든 엔드포인트에 대한 CORS를 활성화합니다.
 app = Flask(__name__)
 
 # API 엔드포인트
